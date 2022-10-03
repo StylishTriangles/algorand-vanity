@@ -1,0 +1,13 @@
+[package]
+name = "keygen"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+algonaut = "0.4.1"
+ed25519-dalek = "1.0.1"
+ocl = { version = "0.19.4" }
+rand = "0.8.5"
+ring = "0.16.20"
