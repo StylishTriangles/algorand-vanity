@@ -4162,6 +4162,7 @@ __kernel void ed25519_create_keypair(
   int i = get_global_id(0);
 
   sha512_calculate(&seed[i * 32], 32, &private_key[i * 64]);
+  // return;
   private_key[i * 64 + 0] &= 248;
   private_key[i * 64 + 31] &= 63;
   private_key[i * 64 + 31] |= 64;

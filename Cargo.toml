@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 algonaut = "0.4.1"
-ed25519-dalek = "1.0.1"
 ocl = { version = "0.19.4" }
 rand = "0.8.5"
 ring = "0.16.20"
+sha2 = "0.10.6"

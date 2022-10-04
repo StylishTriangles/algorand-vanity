@@ -1,20 +1,18 @@
-use std::{error::Error, fs};
+use std::{fs};
 use ocl::{ProQue, Buffer};
-use algonaut::transaction::account::Account;
+// use sha2::{Sha512, Digest};
 
-use ed25519_dalek::{Keypair, PublicKey, Signature, Signer, Verifier};
-
-use ring::signature::{Ed25519KeyPair, KeyPair};
+use ring::signature::{Ed25519KeyPair};
 use crate::xoshiro256::Xoshiro256;
 
 const DIMS: usize = 1;
-const PRIVATE_KEY_LEN: usize = 64;
+const PUBLIC_KEY_LEN: usize = 32;
 const SEED_LEN: usize = 32;
 const U64_LEN: usize = 8;
 
 
 fn load_kernel() -> String {
-    fs::read_to_string("src/kernel.cl").expect("Bruh, no such file")
+    fs::read_to_string("src/chimera.cl").expect("Bruh, no such file")
 }
 
 pub fn generate_seeds(rng: &mut Xoshiro256, count: usize) -> Vec<u8> {
@@ -53,7 +51,7 @@ pub(crate) fn run(prefix: String) -> Result<(), ocl::Error> {
 
     let pk_buffer = Buffer::<u8>::builder()
         .queue(pro_que.queue().clone())
-        .len(PRIVATE_KEY_LEN * DIMS)
+        .len(PUBLIC_KEY_LEN * DIMS)
         .fill_val(0u8)
         .build()?;
 
@@ -67,7 +65,7 @@ pub(crate) fn run(prefix: String) -> Result<(), ocl::Error> {
         .copy_host_slice(&seeds)
         .build()?;
 
-    let kernel = pro_que.kernel_builder("ed25519_create_keypair")
+    let kernel = pro_que.kernel_builder("ed25519_create_pubkey")
         .arg(&pk_buffer)
         .arg(&seed_buffer)
         .build()?;
@@ -79,15 +77,16 @@ pub(crate) fn run(prefix: String) -> Result<(), ocl::Error> {
 
     // let acc = Account::from_seed(seeds[0..32].try_into().unwrap());
     // println!("Public key: {:?}", acc.raw_public_key());
-    seeds.reverse();
+    // seeds.reverse();
     let kp = Ed25519KeyPair::from_seed_unchecked(&seeds[0..32]).unwrap();
     let kp_debug: Ed25519KeyPairDebug = unsafe {
         std::mem::transmute(kp)
     };
 
-    let kp = Keypair::from_bytes(&kp_debug.private_scalar).unwrap();
-    println!("Private key: {:?} {:?}", kp_debug.private_prefix, kp_debug.private_scalar);
+    println!("Public key: {:?}", kp_debug.public_key);
+    // let sha = Sha512::digest(&seeds);
+    // println!("SHA512: {:?}", sha);
 
-    println!("The value at index [{}] is now '{:?}'!", 0, &vec[0..64]);
+    println!("The value at index [{}] is now '{:?}'!", 0, &vec[0..32]);
     Ok(())
 }
