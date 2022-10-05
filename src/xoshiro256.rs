@@ -52,6 +52,7 @@ impl Xoshiro256 {
     /// to 2^128 calls to next(); it can be used to generate 2^128
     /// non-overlapping subsequences for parallel computations.
     pub fn jump(&mut self) {
+        #![allow(dead_code)]
         const JUMP: [u64; 4] = [ 0x180ec6d33cfd0aba, 0xd5a61266f0c9392c, 0xa9582618e03fc9aa, 0x39abdc4529b1661c ];
 
         let mut s0 = Wrapping(0u64);
@@ -81,6 +82,7 @@ impl Xoshiro256 {
     /// from each of which jump() will generate 2^64 non-overlapping
     /// subsequences for parallel distributed computations.
     pub fn long_jump(&mut self) {
+        #![allow(dead_code)]
         const LONG_JUMP: [u64; 4] = [ 0x76e15d3efefdcbbf, 0xc5004e441c522fb3, 0x77710069854ee241, 0x39109bb02acbe635 ];
 
         let mut s0 = Wrapping(0u64);

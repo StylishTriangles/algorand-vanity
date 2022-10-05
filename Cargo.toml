@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 algonaut = "0.4.1"
+base32 = "0.4.0"
 ocl = { version = "0.19.4" }
 rand = "0.8.5"
 ring = "0.16.20"

@@ -43,7 +43,7 @@ typedef struct {
 
 #define rotl64(a,n) (rotate ((a), (n)))
 #define rotr64(a,n) (rotate ((a), (64ul-n)))
-unsigned long SWAP (const unsigned long val)
+static unsigned long SWAP (const unsigned long val)
 {
     // ab cd ef gh -> gh ef cd ab using the 32 bit trick
     unsigned long tmp = (rotr64(val & 0x0000FFFF0000FFFFUL, 16UL) | rotl64(val & 0xFFFF0000FFFF0000UL, 16UL));
@@ -2190,8 +2190,8 @@ ge25519_scalarmult_base_niels(ge25519 *r, const bignum256modm s) {
 	}
 }
 
-void ed25519_create_pubkey(
-                            __global unsigned char *public_key,
+static void ed25519_create_pubkey(
+                            unsigned char *public_key,
                             __global unsigned char *seed) {
   ge25519 ALIGN(16) A;
   unsigned char hash[64];
@@ -2206,16 +2206,75 @@ void ed25519_create_pubkey(
   hash[i * 64 + 31] |= 64;
   expand256_modm(a, hash, 32);
   ge25519_scalarmult_base_niels(&A, a);
-  ge25519_pack(&public_key[i * 32], &A);
+  ge25519_pack(public_key, &A);
+}
+
+// load 5 bytes from the char array into the 40 bit integer in reverse order
+// This way the first byte becomes the most significant byte and the mask can be applied properly
+static unsigned long load_5_bytes_reverse(const unsigned char *x) {
+  unsigned long r = 0;
+  r |= (unsigned long)x[0] << 32;
+  r |= (unsigned long)x[1] << 24;
+  r |= (unsigned long)x[2] << 16;
+  r |= (unsigned long)x[3] << 8;
+  r |= (unsigned long)x[4];
+  return r;
+}
+
+__constant unsigned char BASE32_LUT[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+// encode the lest significant 5 bits of x into an adequate base32 character
+static unsigned char b32_encode_bits(unsigned long x) {
+  return BASE32_LUT[x & 0x1f];
+}
+
+// encode public key into a base32 string and check if it matches the prefix
+static bool b32_compare(
+    __global const unsigned char *prefix,
+    const unsigned int prefix_len,
+    unsigned char *public_key
+) {
+	unsigned int consumed = 0;
+	for (int byte_index = 0; ; byte_index+=5) {
+		unsigned long current = load_5_bytes_reverse(&public_key[byte_index]);
+		unsigned long mask = 0x1fUL << 35;
+
+		// The first byte is the most significant in the 40 bit integer
+		for (int i = 7; i >= 0; i--) { // 8 iterations => 40 bits processed => 5 bytes processed
+			unsigned long val_to_encode = (current & mask) >> (i * 5);
+			unsigned char encoded = b32_encode_bits(val_to_encode);
+			if (encoded != prefix[consumed]) {
+				return false;
+			}
+			consumed++;
+			if (consumed >= prefix_len) {
+				return true;
+			}
+			mask >>= 5;
+		}
+	}
 }
 
 __kernel void brute_force_b32_prefix(
-    __global unsigned int *found,
+    __global unsigned char *found,
     __global unsigned char *public_key,
     __global unsigned char *seed,
-    __global const char *prefix,
+    __global const unsigned char *prefix,
     const unsigned int prefix_len,
-    const unsigned int iterations,
+    const unsigned int iterations
 ) {
-
+	unsigned id = get_global_id(0);
+	unsigned char public_key_local[32];
+	for (unsigned i = 0; i < iterations; i++) {
+		ed25519_create_pubkey(public_key_local, &seed[id * 32]);
+		bool result = b32_compare(prefix, prefix_len, public_key_local);
+		if (result) {
+			found[id] = true;
+			// copy key over to globals
+			for (unsigned j = 0; j < 32; j++) {
+				public_key[id * 32 + j] = public_key_local[j];
+			}
+			return;
+		}
+	}
 }

@@ -1,9 +1,11 @@
 use std::{fs};
-use ocl::{ProQue, Buffer};
+use ocl::{ProQue, Buffer, MemFlags};
 // use sha2::{Sha512, Digest};
 
 use ring::signature::{Ed25519KeyPair};
 use crate::xoshiro256::Xoshiro256;
+
+use base32::{Alphabet, encode as b32encode};
 
 const DIMS: usize = 1;
 const PUBLIC_KEY_LEN: usize = 32;
@@ -49,6 +51,11 @@ pub(crate) fn run(prefix: String) -> Result<(), ocl::Error> {
         .build()?;
 
 
+    let found_buffer = Buffer::<u8>::builder()
+        .queue(pro_que.queue().clone())
+        .len(DIMS)
+        .build()?;
+
     let pk_buffer = Buffer::<u8>::builder()
         .queue(pro_que.queue().clone())
         .len(PUBLIC_KEY_LEN * DIMS)
@@ -59,21 +66,38 @@ pub(crate) fn run(prefix: String) -> Result<(), ocl::Error> {
     // let mut seeds = generate_seeds(&mut rng, DIMS);
     let mut seeds: Vec<u8> = vec![108, 75, 154, 1, 135, 158, 88, 246, 92, 77, 139, 103, 47, 229, 239, 40, 220, 185, 84, 75, 117, 203, 247, 26, 91, 7, 240, 156, 134, 212, 162, 234];
     println!("Seeds: {:?}", seeds);
-    let seed_buffer = Buffer::<u8>::builder()
+    let seed_buffer;
+    unsafe {
+        seed_buffer = Buffer::<u8>::builder()
+            .queue(pro_que.queue().clone())
+            .len(seeds.len())
+            .use_host_slice(&seeds)
+            .flags(MemFlags::READ_ONLY)
+            .build()?;
+    };
+    
+    let prefix_buffer = Buffer::<u8>::builder()
         .queue(pro_que.queue().clone())
-        .len(seeds.len())
-        .copy_host_slice(&seeds)
+        .len(prefix.len())
+        .copy_host_slice(prefix.as_bytes())
+        .flags(MemFlags::READ_ONLY)
         .build()?;
 
-    let kernel = pro_que.kernel_builder("ed25519_create_pubkey")
+    let kernel = pro_que.kernel_builder("brute_force_b32_prefix")
+        .arg(&found_buffer)
         .arg(&pk_buffer)
         .arg(&seed_buffer)
+        .arg(&prefix_buffer)
+        .arg(prefix.len() as u32)
+        .arg(1u32)
         .build()?;
 
     unsafe { kernel.enq()?; }
 
-    let mut vec: Vec<u8> = vec![0u8; pk_buffer.len()];
-    pk_buffer.read(&mut vec).enq()?;
+    let mut public_keys: Vec<u8> = vec![0u8; pk_buffer.len()];
+    let mut found: Vec<u8> = vec![0u8; DIMS];
+    found_buffer.read(&mut found).enq()?;
+    pk_buffer.read(&mut public_keys).enq()?;
 
     // let acc = Account::from_seed(seeds[0..32].try_into().unwrap());
     // println!("Public key: {:?}", acc.raw_public_key());
@@ -84,9 +108,10 @@ pub(crate) fn run(prefix: String) -> Result<(), ocl::Error> {
     };
 
     println!("Public key: {:?}", kp_debug.public_key);
+    println!("Public key base32: {:?}", b32encode(Alphabet::RFC4648 { padding: true }, &kp_debug.public_key));
     // let sha = Sha512::digest(&seeds);
     // println!("SHA512: {:?}", sha);
 
-    println!("The value at index [{}] is now '{:?}'!", 0, &vec[0..32]);
+    println!("The value at index [{}] is now '{:?}'!", 0, &public_keys[0..32]);
     Ok(())
 }
