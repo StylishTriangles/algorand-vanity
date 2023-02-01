@@ -15,6 +15,7 @@ fn rotl(x: Wrapping<u64>, k: usize) -> Wrapping<u64> {
 ///    The state must be seeded so that it is not everywhere zero. If you have
 ///    a 64-bit seed, we suggest to seed a splitmix64 generator and use its
 ///    output to fill s.
+#[derive(Copy,Clone)]
 pub struct Xoshiro256 {
     state: [Wrapping<u64>; 4],
 }

@@ -1,13 +1,13 @@
 [package]
-name = "keygen"
+name = "algorand-vanity"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-algonaut = "0.4.1"
 base32 = "0.4.0"
+ed25519-dalek = { version = "1.0.1", default-features = false, features = ["std", "u64_backend"] }
 ocl = { version = "0.19.4" }
 rand = "0.8.5"
 ring = "0.16.20"
