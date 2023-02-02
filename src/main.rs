@@ -1,11 +1,12 @@
 mod cpu;
 mod mnemonic;
 mod wordlist;
-mod run;
+mod crypto;
+mod gpu;
 mod xoshiro256;
 
 use crate::cpu::run as run_cpu;
-use crate::run::run as run_gpu;
+use crate::gpu::run as run_gpu;
 use std::env;
 
 fn main() {
