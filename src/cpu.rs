@@ -35,7 +35,7 @@ impl CircularBuffer {
         }
     }
 
-    pub fn push(&mut self, value: u64) -> () {
+    pub fn push(&mut self, value: u64) {
         self.buffer[self.index] = value;
         self.index = (self.index + 1) % self.buffer.len();
     }
@@ -45,7 +45,7 @@ impl CircularBuffer {
     }
 }
 
-pub fn run(prefix: String, threads: usize) -> () {
+pub fn run(prefix: String, threads: usize) {
     let mut main_rng = Xoshiro256::from_entropy();
 
     let (tx, rx) = mpsc::channel();
@@ -83,16 +83,13 @@ pub fn run(prefix: String, threads: usize) -> () {
         print!("\rAvg. key search rate: {:.3}KK/s", key_rate);
         stdout().flush().unwrap();
         // check if the result is in
-        match rx.try_recv() {
-            Ok(result) => {
-                println!();
-                println!("Match found!");
-                println!("Address: {}", result.address);
-                println!("Mnemonic: {}", result.mnemonic);
-                println!("Time: {}s", now.duration_since(start).as_secs());
-                return;
-            },
-            Err(_) => ()
+        if let Ok(result) = rx.try_recv() {
+            println!();
+            println!("Match found!");
+            println!("Address: {}", result.address);
+            println!("Mnemonic: {}", result.mnemonic);
+            println!("Time: {}s", now.duration_since(start).as_secs());
+            return;
         }
         // sleep for one second
         std::thread::sleep(std::time::Duration::from_secs(1));
@@ -101,7 +98,7 @@ pub fn run(prefix: String, threads: usize) -> () {
 
 /// Search for a matching address in a single thread
 /// Each thread must receive a different seed
-fn run_cpu_thread(prefix: String, mut seed: [u64; 4], tx: mpsc::Sender<ThreadResult>, progeress_sender: mpsc::Sender<()>) -> () {
+fn run_cpu_thread(prefix: String, mut seed: [u64; 4], tx: mpsc::Sender<ThreadResult>, progeress_sender: mpsc::Sender<()>) {
     let mut hashes = 0u64;
     loop {
         hashes += 1;

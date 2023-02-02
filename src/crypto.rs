@@ -34,7 +34,7 @@ impl KeyPair {
 
     pub fn address(&self) -> String {
         let mut address: Vec<u8> = Vec::with_capacity(CHECKSUM_LEN + PUBLIC_KEY_LEN);
-        address.extend(&self.public_key);
+        address.extend(self.public_key);
         let checksum = sha2::Sha512_256::digest(&address)[28..32].to_vec();
         address.extend(checksum);
         base32::encode(base32::Alphabet::RFC4648 { padding: false }, &address)

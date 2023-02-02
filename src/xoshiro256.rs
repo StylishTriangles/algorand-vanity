@@ -2,7 +2,7 @@ use std::num::Wrapping;
 use rand::{self, RngCore};
 
 fn rotl(x: Wrapping<u64>, k: usize) -> Wrapping<u64> {
-	return (x << k) | (x >> (64 - k));
+	(x << k) | (x >> (64 - k))
 }
 
 ///    This is xoshiro256++ 1.0, one of our all-purpose, rock-solid generators.
@@ -23,8 +23,8 @@ pub struct Xoshiro256 {
 impl Xoshiro256 {
     pub fn from_entropy() -> Self {
         let mut state = [Wrapping(0u64); 4];
-        for i in 0..4 {
-            state[i].0 = rand::rngs::OsRng.next_u64();
+        for s in &mut state {
+            s.0 = rand::rngs::OsRng.next_u64();
         }
         Self { state }
     }
@@ -46,7 +46,7 @@ impl Xoshiro256 {
 
         s[3] = rotl(s[3], 45);
 
-        return result.0;
+        result.0
     }
 
     /// This is the jump function for the generator. It is equivalent
@@ -60,9 +60,9 @@ impl Xoshiro256 {
         let mut s1 = Wrapping(0u64);
         let mut s2 = Wrapping(0u64);
         let mut s3 = Wrapping(0u64);
-        for i in 0..4 {
+        for jmp in &JUMP {
             for b in 0..64u32 {
-                if (JUMP[i] & 1u64 << b) > 0 {
+                if (jmp & 1u64 << b) > 0 {
                     s0 ^= self.state[0];
                     s1 ^= self.state[1];
                     s2 ^= self.state[2];
@@ -90,9 +90,9 @@ impl Xoshiro256 {
         let mut s1 = Wrapping(0u64);
         let mut s2 = Wrapping(0u64);
         let mut s3 = Wrapping(0u64);
-        for i in 0..4 {
+        for l_jmp in &LONG_JUMP {
             for b in 0..64u32 {
-                if (LONG_JUMP[i] & 1u64 << b) > 0 {
+                if (l_jmp & 1u64 << b) > 0 {
                     s0 ^= self.state[0];
                     s1 ^= self.state[1];
                     s2 ^= self.state[2];

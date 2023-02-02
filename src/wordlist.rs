@@ -1,4 +1,4 @@
-pub const WORDLIST: [&'static str; 2048] = [
+pub const WORDLIST: [&str; 2048] = [
     "abandon",
         "ability",
         "able",
