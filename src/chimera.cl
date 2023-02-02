@@ -2268,8 +2268,12 @@ __kernel void brute_force_b32_prefix(
 	for (unsigned i = 0; i < iterations; i++) {
 		ed25519_create_pubkey(public_key_local, &seed[id * 32]);
 		bool result = b32_compare(prefix, prefix_len, public_key_local);
+		// copy key over to globals
+		for (unsigned j = 0; j < 32; j++) {
+			public_key[id * 32 + j] = public_key_local[j];
+		}
 		if (result) {
-			found[id] = true;
+			found[id] = 1;
 			// copy key over to globals
 			for (unsigned j = 0; j < 32; j++) {
 				public_key[id * 32 + j] = public_key_local[j];
