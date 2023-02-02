@@ -14,7 +14,7 @@ const U64_LEN: usize = 8;
 
 
 fn load_kernel() -> String {
-    fs::read_to_string("src/chimera.cl").expect("Bruh, no such file")
+    fs::read_to_string("src/cl/chimera.cl").expect("Bruh, no such file")
 }
 
 pub fn generate_seeds(rng: &mut Xoshiro256, count: usize) -> Vec<u8> {
